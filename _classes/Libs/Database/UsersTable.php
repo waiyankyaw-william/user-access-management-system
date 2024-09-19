@@ -28,6 +28,8 @@ class UsersTable
     public function insert($data)
     {
         try {
+            $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+
             $query = "INSERT INTO users (name, email, phone, address, password, role_id, created_at) VALUES (:name, :email, :phone, :address, :password, :role_id, NOW())";
             $statement = $this->db->prepare($query);
             $statement->execute($data);
@@ -41,13 +43,18 @@ class UsersTable
     public function check($email, $password)
     {
         try {
-            $query = "SELECT * FROM users WHERE email=:email AND password=:password";
+            $query = "SELECT * FROM users WHERE email=:email";
             $statement = $this->db->prepare($query);
             $statement->execute([
                 'email' => $email,
-                'password' => $password,
             ]);
-            return $statement->fetch();
+            $user = $statement->fetch();
+
+            if (password_verify($password, $user->password)) {
+                return $user;
+            }
+
+            return false;
         } catch (PDOException $e) {
             return $e->getMessage();
             exit();
